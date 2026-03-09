@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Differential Equation Solver</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #000000;
+      --muted: #666666;
+      --border: #000000;
+      --accent: #000000;
+      --grid: #cccccc;
+      --axis: #000000;
+      --solution: #000000;
+      --field: #999999;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0a0a0a;
+        --fg: #e5e5e5;
+        --muted: #888888;
+        --border: #333333;
+        --accent: #ffffff;
+        --grid: #222222;
+        --axis: #444444;
+        --solution: #ffffff;
+        --field: #444444;
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
+                   Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 700px) {
+      .main-grid {
+        grid-template-columns: 280px 1fr;
+      }
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", 
+                   Consolas, "Courier New", monospace;
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      width: 100%;
+      transition: border-color 0.15s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      appearance: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 0;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: var(--accent);
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+    }
+
+    select {
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .btn {
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 0.625rem 1rem;
+      background: var(--fg);
+      color: var(--bg);
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+
+    .btn:hover {
+      opacity: 0.85;
+    }
+
+    .btn:active {
+      opacity: 0.7;
+    }
+
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      background: var(--fg);
+      color: var(--bg);
+      opacity: 1;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      cursor: crosshair;
+    }
+
+    .canvas-info {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      font-size: 0.625rem;
+      color: var(--muted);
+      pointer-events: none;
+      font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    }
+
+    .legend {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      font-size: 0.75rem;
+    }
+
+    .legend-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+      color: var(--muted);
+    }
+
+    .legend-line {
+      width: 1.5rem;
+      height: 2px;
+      background: var(--solution);
+    }
+
+    .legend-arrow {
+      width: 1.5rem;
+      height: 2px;
+      background: var(--field);
+      position: relative;
+    }
+
+    .legend-arrow::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: -2px;
+      border: 3px solid transparent;
+      border-left-color: var(--field);
+    }
+
+    .instructions {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border: 1px dashed var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .instructions ul {
+      margin-left: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .instructions li {
+      margin-bottom: 0.25rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="fade-in">
+      <h1>Differential Equation Solver</h1>
+      <p class="subtitle">First-order ODE: dy/dt = f(y, t)</p>
+    </header>
+
+    <div class="main-grid">
+      <div class="controls fade-in" style="animation-delay: 0.1s;">
+        <div class="control-group">
+          <label for="equation">Equation dy/dt =</label>
+          <input type="text" id="equation" value="-y" aria-describedby="eq-help">
+        </div>
+
+        <div class="control-group">
+          <label for="presets">Presets</label>
+          <select id="presets">
+            <option value="">Select preset...</option>
+            <option value="-y">Exponential decay: -y</option>
+            <option value="y">Exponential growth: y</option>
+            <option value="y*(1-y)">Logistic: y(1-y)</option>
+            <option value="-y*sin(t)">Oscillating: -y*sin(t)</option>
+            <option value="t-y">Linear drift: t-y</option>
+            <option value="y*y-t*t">Nonlinear: y² - t²</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="y0">Initial y(t₀)</label>
+          <input type="number" id="y0" value="1" step="0.1">
+        </div>
+
+        <div class="control-group">
+          <label for="t0">Initial t₀</label>
+          <input type="number" id="t0" value="0" step="0.1">
+        </div>
+
+        <div class="control-group">
+          <label>Time range</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="number" id="tMin" value="-5" step="1" style="width: 50%;">
+            <input type="number" id="tMax" value="5" step="1" style="width: 50%;">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Y range</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="number" id="yMin" value="-5" step="1" style="width: 50%;">
+            <input type="number" id="yMax" value="5" step="1" style="width: 50%;">
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="steps">Integration steps: <span id="stepsVal">200</span></label>
+          <input type="range" id="steps" min="50" max="500" value="200">
+        </div>
+
+        <button class="btn" id="solve">Solve</button>
+        <button class="btn btn-outline" id="reset">Reset View</button>
+
+        <div class="legend">
+          <div class="legend-title">Legend</div>
+          <div class="legend-item">
+            <span class="legend-line"></span>
+            <span>Solution curve</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-arrow"></span>
+            <span>Slope field</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="fade-in" style="animation-delay: 0.2s;">
+        <div class="canvas-wrapper">
+          <canvas id="graph" width="600" height="500" role="img" aria-label="Differential equation solution graph"></canvas>
+          <div class="canvas-info" id="coords">t: 0.00, y: 0.00</div>
+        </div>
+
+        <div class="instructions">
+          <strong>Instructions:</strong>
+          <ul>
+            <li>Enter a differential equation using y, t, and math functions (sin, cos, exp, log, sqrt, abs)</li>
+            <li>Click on the graph to set a new initial condition</li>
+            <li>Drag to pan the view</li>
+            <li>Scroll to zoom in/out</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // Configuration
+      const CONFIG = {
+        gridDensity: 20,
+        arrowScale: 0.7,
+        lineWidth: 2,
+        pointRadius: 4
+      };
+
+      // State
+      const state = {
+        tMin: -5, tMax: 5,
+        yMin: -5, yMax: 5,
+        equation: '-y',
+        y0: 1, t0: 0,
+        steps: 200,
+        isDragging: false,
+        dragStart: { x: 0, y: 0 },
+        viewStart: { tMin: 0, tMax: 0, yMin: 0, yMax: 0 }
+      };
+
+      // DOM elements
+      const canvas = document.getElementById('graph');
+      const ctx = canvas.getContext('2d');
+      const coordsDisplay = document.getElementById('coords');
+      const stepsValDisplay = document.getElementById('stepsVal');
+
+      const inputs = {
+        equation: document.getElementById('equation'),
+        presets: document.getElementById('presets'),
+        y0: document.getElementById('y0'),
+        t0: document.getElementById('t0'),
+        tMin: document.getElementById('tMin'),
+        tMax: document.getElementById('tMax'),
+        yMin: document.getElementById('yMin'),
+        yMax: document.getElementById('yMax'),
+        steps: document.getElementById('steps')
+      };
+
+      const buttons = {
+        solve: document.getElementById('solve'),
+        reset: document.getElementById('reset')
+      };
+
+      // Color helpers
+      function getComputedColor(varName) {
+        const style = getComputedStyle(document.documentElement);
+        return style.getPropertyValue(varName).trim();
+      }
+
+      function getColors() {
+        return {
+          bg: getComputedColor('--bg'),
+          fg: getComputedColor('--fg'),
+          grid: getComputedColor('--grid'),
+          axis: getComputedColor('--axis'),
+          solution: getComputedColor('--solution'),
+          field: getComputedColor('--field'),
+          muted: getComputedColor('--muted')
+        };
+      }
+
+      // Math parser
+      function parseEquation(expr) {
+        const sanitized = expr
+          .replace(/\s+/g, '')
+          .replace(/\^/g, '**')
+          .replace(/sin/g, 'Math.sin')
+          .replace(/cos/g, 'Math.cos')
+          .replace(/tan/g, 'Math.tan')
+          .replace(/exp/g, 'Math.exp')
+          .replace(/log/g, 'Math.log')
+          .replace(/sqrt/g, 'Math.sqrt')
+          .replace(/abs/g, 'Math.abs')
+          .replace(/pi/gi, 'Math.PI')
+          .replace(/e(?![x])/g, 'Math.E');
+
+        return new Function('y', 't', `
+          try {
+            const result = ${sanitized};
+            if (!isFinite(result)) return 0;
+            return result;
+          } catch(e) {
+            return 0;
+          }
+        `);
+      }
+
+      // Euler method solver
+      function solveODE(f, y0, t0, tEnd, steps, direction) {
+        const solution = [];
+        const h = direction * Math.abs(tEnd - t0) / steps;
+        let y = y0;
+        let t = t0;
+
+        solution.push({ t, y });
+
+        for (let i = 0; i < steps; i++) {
+          const dydt = f(y, t);
+          
+          // Adaptive step if derivative is large
+          const step = Math.abs(dydt) > 10 ? h * 0.1 : h;
+          
+          y = y + step * dydt;
+          t = t + step;
+
+          // Clamp to reasonable values
+          if (Math.abs(y) > 1e6) break;
+          
+          solution.push({ t, y });
+        }
+
+        return solution;
+      }
+
+      // Coordinate transformations
+      function tToX(t) {
+        const width = canvas.width;
+        return (t - state.tMin) / (state.tMax - state.tMin) * width;
+      }
+
+      function yToX(y) {
+        const height = canvas.height;
+        return height - (y - state.yMin) / (state.yMax - state.yMin) * height;
+      }
+
+      function xToT(x) {
+        const width = canvas.width;
+        return state.tMin + (x / width) * (state.tMax - state.tMin);
+      }
+
+      function xToY(y) {
+        const height = canvas.height;
+        return state.yMax - (y / height) * (state.yMax - state.yMin);
+      }
+
+      // Drawing functions
+      function clearCanvas() {
+        const colors = getColors();
+        ctx.fillStyle = colors.bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function drawGrid() {
+        const colors = getColors();
+        ctx.strokeStyle = colors.grid;
+        ctx.lineWidth = 1;
+
+        const tRange = state.tMax - state.tMin;
+        const yRange = state.yMax - state.yMin;
+
+        const tStep = Math.pow(10, Math.floor(Math.log10(tRange / 5)));
+        const yStep = Math.pow(10, Math.floor(Math.log10(yRange / 5)));
+
+        // Vertical lines
+        ctx.beginPath();
+        for (let t = Math.ceil(state.tMin / tStep) * tStep; t <= state.tMax; t += tStep) {
+          const x = tToX(t);
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+        }
+        ctx.stroke();
+
+        // Horizontal lines
+        ctx.beginPath();
+        for (let y = Math.ceil(state.yMin / yStep) * yStep; y <= state.yMax; y += yStep) {
+          const yPos = yToX(y);
+          ctx.moveTo(0, yPos);
+          ctx.lineTo(canvas.width, yPos);
+        }
+        ctx.stroke();
+      }
+
+      function drawAxes() {
+        const colors = getColors();
+        ctx.strokeStyle = colors.axis;
+        ctx.lineWidth = 1.5;
+
+        // T-axis
+        if (state.yMin <= 0 && state.yMax >= 0) {
+          const y0 = yToX(0);
+          ctx.beginPath();
+          ctx.moveTo(0, y0);
+          ctx.lineTo(canvas.width, y0);
+          ctx.stroke();
+        }
+
+        // Y-axis
+        if (state.tMin <= 0 && state.tMax >= 0) {
+          const t0 = tToX(0);
+          ctx.beginPath();
+          ctx.moveTo(t0, 0);
+          ctx.lineTo(t0, canvas.height);
+          ctx.stroke();
+        }
+      }
+
+      function drawSlopeField(f) {
+        const colors = getColors();
+        ctx.strokeStyle = colors.field;
+        ctx.lineWidth = 1;
+
+        const cols = 20;
+        const rows = Math.floor(cols * canvas.height / canvas.width);
+        const tStep = (state.tMax - state.tMin) / cols;
+        const yStep = (state.yMax - state.yMin) / rows;
+
+        const arrowLen = Math.min(tStep, yStep) * 0.4 * CONFIG.arrowScale;
+
+        for (let i = 0; i <= cols; i++) {
+          for (let j = 0; j <= rows; j++) {
+            const t = state.tMin + i * tStep;
+            const y = state.yMin + j * yStep;
+            
+            const dydt = f(y, t);
+            const mag = Math.sqrt(1 + dydt * dydt);
+            
+            const dx = arrowLen / mag;
+            const dy = arrowLen * dydt / mag;
+
+            const x = tToX(t);
+            const yPos = yToX(y);
+
+            ctx.beginPath();
+            ctx.moveTo(x - dx * canvas.width / (state.tMax - state.tMin), 
+                       yPos + dy * canvas.height / (state.yMax - state.yMin));
+            ctx.lineTo(x + dx * canvas.width / (state.tMax - state.tMin), 
+                       yPos - dy * canvas.height / (state.yMax - state.yMin));
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawSolution(solution, color) {
+        if (solution.length < 2) return;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = CONFIG.lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        let started = false;
+
+        for (let i = 0; i < solution.length; i++) {
+          const pt = solution[i];
+          
+          // Skip points outside view
+          if (pt.t < state.tMin || pt.t > state.tMax || 
+              pt.y < state.yMin || pt.y > state.yMax) {
+            if (started) {
+              ctx.stroke();
+              ctx.beginPath();
+              started = false;
+            }
+            continue;
+          }
+
+          const x = tToX(pt.t);
+          const y = yToX(pt.y);
+
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+
+        // Draw initial point
+        if (solution.length > 0) {
+          const p0 = solution[0];
+          if (p0.t >= state.tMin && p0.t <= state.tMax &&
+              p0.y >= state.yMin && p0.y <= state.yMax) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(tToX(p0.t), yToX(p0.y), CONFIG.pointRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function render() {
+        clearCanvas();
+        drawGrid();
+        drawAxes();
+
+        let f;
+        try {
+          f = parseEquation(state.equation);
+          // Test the function
+          f(0, 0);
+        } catch (e) {
+          console.error('Invalid equation:', e);
+          return;
+        }
+
+        drawSlopeField(f);
+
+        // Solve forward
+        const solutionForward = solveODE(f, state.y0, state.t0, state.tMax, state.steps, 1);
+        // Solve backward
+        const solutionBackward = solveODE(f, state.y0, state.t0, state.tMin, state.steps, -1);
+        
+        const colors = getColors();
+        
+        drawSolution(solutionForward, colors.solution);
+        drawSolution(solutionBackward, colors.solution);
+      }
+
+      // Event handlers
+      function updateFromInputs() {
+        state.equation = inputs.equation.value || '-y';
+        state.y0 = parseFloat(inputs.y0.value) || 0;
+        state.t0 = parseFloat(inputs.t0.value) || 0;
+        state.tMin = parseFloat(inputs.tMin.value) || -5;
+        state.tMax = parseFloat(inputs.tMax.value) || 5;
+        state.yMin = parseFloat(inputs.yMin.value) || -5;
+        state.yMax = parseFloat(inputs.yMax.value) || 5;
+        state.steps = parseInt(inputs.steps.value) || 200;
+      }
+
+      function updateInputsFromState() {
+        inputs.tMin.value = state.tMin.toFixed(2);
+        inputs.tMax.value = state.tMax.toFixed(2);
+        inputs.yMin.value = state.yMin.toFixed(2);
+        inputs.yMax.value = state.yMax.toFixed(2);
+      }
+
+      function handleSolve() {
+        updateFromInputs();
+        render();
+      }
+
+      function handleReset() {
+        state.tMin = -5; state.tMax = 5;
+        state.yMin = -5; state.yMax = 5;
+        updateInputsFromState();
+        render();
+      }
+
+      function handlePresetChange(e) {
+        if (e.target.value) {
+          inputs.equation.value = e.target.value;
+          state.equation = e.target.value;
+          render();
+        }
+      }
+
+      function handleStepsChange(e) {
+        state.steps = parseInt(e.target.value);
+        stepsValDisplay.textContent = state.steps;
+      }
+
+      function handleCanvasClick(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const t = xToT(x * (canvas.width / rect.width));
+        const yPos = xToY(y * (canvas.height / rect.height));
+
+        state.y0 = yPos;
+        state.t0 = t;
+        inputs.y0.value = yPos.toFixed(2);
+        inputs.t0.value = t.toFixed(2);
+        
+        render();
+      }
+
+      function handleMouseDown(e) {
+        state.isDragging = true;
+        state.dragStart = { x: e.clientX, y: e.clientY };
+        state.viewStart = {
+          tMin: state.tMin, tMax: state.tMax,
+          yMin: state.yMin, yMax: state.yMax
+        };
+        canvas.style.cursor = 'grabbing';
+      }
+
+      function handleMouseMove(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const t = xToT(x * (canvas.width / rect.width));
+        const yPos = xToY(y * (canvas.height / rect.height));
+        
+        coordsDisplay.textContent = `t: ${t.toFixed(2)}, y: ${yPos.toFixed(2)}`;
+
+        if (state.isDragging) {
+          const dx = e.clientX - state.dragStart.x;
+          const dy = e.clientY - state.dragStart.y;
+
+          const tRange = state.viewStart.tMax - state.viewStart.tMin;
+          const yRange = state.viewStart.yMax - state.viewStart.yMin;
+
+          const dt = -(dx / rect.width) * tRange;
+          const dyShift = (dy / rect.height) * yRange;
+
+          state.tMin = state.viewStart.tMin + dt;
+          state.tMax = state.viewStart.tMax + dt;
+          state.yMin = state.viewStart.yMin + dyShift;
+          state.yMax = state.viewStart.yMax + dyShift;
+
+          updateInputsFromState();
+          render();
+        }
+      }
+
+      function handleMouseUp() {
+        state.isDragging = false;
+        canvas.style.cursor = 'crosshair';
+      }
+
+      function handleWheel(e) {
+        e.preventDefault();
+
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const tCenter = xToT(mouseX * (canvas.width / rect.width));
+        const yCenter = xToY(mouseY * (canvas.height / rect.height));
+
+        const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+
+        const tRange = (state.tMax - state.tMin) * zoomFactor;
+        const yRange = (state.yMax - state.yMin) * zoomFactor;
+
+        state.tMin = tCenter - (tCenter - state.tMin) * zoomFactor;
+        state.tMax = tCenter + (state.tMax - tCenter) * zoomFactor;
+        state.yMin = yCenter - (yCenter - state.yMin) * zoomFactor;
+        state.yMax = yCenter + (state.yMax - yCenter) * zoomFactor;
+
+        updateInputsFromState();
+        render();
+      }
+
+      function handleResize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        const width = rect.width - 2; // border
+        const height = Math.min(500, window.innerHeight * 0.6);
+        
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        
+        ctx.scale(dpr, dpr);
+        canvas.width = width;
+        canvas.height = height;
+        
+        render();
+      }
+
+      // Initialize
+      function init() {
+        // Event listeners
+        buttons.solve.addEventListener('click', handleSolve);
+        buttons.reset.addEventListener('click', handleReset);
+        inputs.presets.addEventListener('change', handlePresetChange);
+        inputs.steps.addEventListener('input', handleStepsChange);
+
+        // Input changes trigger solve
+        [inputs.equation, inputs.y0, inputs.t0, inputs.tMin, inputs.tMax, 
+         inputs.yMin, inputs.yMax].forEach(input => {
+          input.addEventListener('change', handleSolve);
+        });
+
+        // Canvas interactions
+        canvas.addEventListener('click', function(e) {
+          if (!state.isDragging) {
+            handleCanvasClick(e);
+          }
+        });
+
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+        // Touch support
+        canvas.addEventListener('touchstart', function(e) {
+          e.preventDefault();
+          const touch = e.touches[0];
+          handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', function(e) {
+          e.preventDefault();
+          const touch = e.touches[0];
+          handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', handleMouseUp);
+
+        // Resize
+        window.addEventListener('resize', handleResize);
+
+        // Initial render
+        handleResize();
+      }
+
+      // Run
+      init();
+    })();
+  </script>
+</body>
+</html>

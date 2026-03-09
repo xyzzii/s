@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Differential Equation Solver</title>
   <style>
+    /* 1. Define Light Mode (Default) */
     :root {
       --bg: #ffffff;
       --fg: #000000;
@@ -17,8 +18,9 @@
       --field: #999999;
     }
 
+    /* 2. Define System Dark Mode */
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --bg: #0a0a0a;
         --fg: #e5e5e5;
         --muted: #888888;
@@ -29,6 +31,32 @@
         --solution: #ffffff;
         --field: #444444;
       }
+    }
+
+    /* 3. Define Manual Dark Mode Override */
+    :root[data-theme="dark"] {
+      --bg: #0a0a0a;
+      --fg: #e5e5e5;
+      --muted: #888888;
+      --border: #333333;
+      --accent: #ffffff;
+      --grid: #222222;
+      --axis: #444444;
+      --solution: #ffffff;
+      --field: #444444;
+    }
+
+    /* 4. Define Manual Light Mode Override */
+    :root[data-theme="light"] {
+      --bg: #ffffff;
+      --fg: #000000;
+      --muted: #666666;
+      --border: #000000;
+      --accent: #000000;
+      --grid: #cccccc;
+      --axis: #000000;
+      --solution: #000000;
+      --field: #999999;
     }
 
     * {
@@ -51,6 +79,26 @@
       padding: 2rem;
     }
 
+    /* Noscript Styles */
+    noscript {
+      display: block;
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 2px dashed var(--border);
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    noscript h2 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    noscript p {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
     .container {
       max-width: 900px;
       margin: 0 auto;
@@ -60,9 +108,14 @@
       margin-bottom: 2rem;
       padding-bottom: 1rem;
       border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
     }
 
-    h1 {
+    .header-content h1 {
       font-size: 1.5rem;
       font-weight: 600;
       letter-spacing: -0.02em;
@@ -72,6 +125,35 @@
     .subtitle {
       color: var(--muted);
       font-size: 0.875rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .theme-toggle {
+      font-size: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: background 0.2s ease, color 0.2s ease;
+      min-width: 80px; /* Prevent layout shift */
+      text-align: center;
+    }
+
+    .theme-toggle:hover {
+      background: var(--fg);
+      color: var(--bg);
+    }
+
+    .theme-toggle:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     .main-grid {
@@ -290,26 +372,28 @@
         animation: none !important;
       }
     }
-
-    .fade-in {
-      animation: fadeIn 0.3s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
   </style>
 </head>
 <body>
   <div class="container">
-    <header class="fade-in">
-      <h1>Differential Equation Solver</h1>
-      <p class="subtitle">First-order ODE: dy/dt = f(y, t)</p>
+    
+    <noscript>
+      <h2>JavaScript Required</h2>
+      <p>Please enable JavaScript to use the differential equation solver. This application relies on JS for mathematical calculations and canvas rendering.</p>
+    </noscript>
+
+    <header>
+      <div class="header-content">
+        <h1>Differential Equation Solver</h1>
+        <p class="subtitle">First-order ODE: dy/dt = f(y, t)</p>
+      </div>
+      <div class="header-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">Theme</button>
+      </div>
     </header>
 
     <div class="main-grid">
-      <div class="controls fade-in" style="animation-delay: 0.1s;">
+      <div class="controls">
         <div class="control-group">
           <label for="equation">Equation dy/dt =</label>
           <input type="text" id="equation" value="-y" aria-describedby="eq-help">
@@ -375,7 +459,7 @@
         </div>
       </div>
 
-      <div class="fade-in" style="animation-delay: 0.2s;">
+      <div>
         <div class="canvas-wrapper">
           <canvas id="graph" width="600" height="500" role="img" aria-label="Differential equation solution graph"></canvas>
           <div class="canvas-info" id="coords">t: 0.00, y: 0.00</div>
@@ -398,7 +482,52 @@
     (function() {
       'use strict';
 
-      // Configuration
+      // --- Theme Manager ---
+      const themes = ['auto', 'light', 'dark'];
+      let currentThemeIndex = 0;
+      const themeToggle = document.getElementById('themeToggle');
+      const htmlRoot = document.documentElement;
+
+      function applyTheme(theme) {
+        // Remove existing theme attributes
+        htmlRoot.removeAttribute('data-theme');
+        
+        if (theme === 'light') {
+          htmlRoot.setAttribute('data-theme', 'light');
+        } else if (theme === 'dark') {
+          htmlRoot.setAttribute('data-theme', 'dark');
+        }
+        // If 'auto', we do nothing, letting the @media query handle it
+        
+        // Update button text
+        themeToggle.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+        
+        // Re-render canvas to update colors immediately
+        if (typeof render === 'function') render();
+      }
+
+      function cycleTheme() {
+        currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+        const newTheme = themes[currentThemeIndex];
+        localStorage.setItem('theme', newTheme);
+        applyTheme(newTheme);
+      }
+
+      function initTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme && themes.includes(savedTheme)) {
+          currentThemeIndex = themes.indexOf(savedTheme);
+        } else {
+          // Default to system
+          currentThemeIndex = 0;
+        }
+        applyTheme(themes[currentThemeIndex]);
+      }
+
+      themeToggle.addEventListener('click', cycleTheme);
+      initTheme();
+
+      // --- Solver Logic ---
       const CONFIG = {
         gridDensity: 20,
         arrowScale: 0.7,
@@ -406,7 +535,6 @@
         pointRadius: 4
       };
 
-      // State
       const state = {
         tMin: -5, tMax: 5,
         yMin: -5, yMax: 5,
@@ -418,7 +546,6 @@
         viewStart: { tMin: 0, tMax: 0, yMin: 0, yMax: 0 }
       };
 
-      // DOM elements
       const canvas = document.getElementById('graph');
       const ctx = canvas.getContext('2d');
       const coordsDisplay = document.getElementById('coords');
@@ -441,7 +568,6 @@
         reset: document.getElementById('reset')
       };
 
-      // Color helpers
       function getComputedColor(varName) {
         const style = getComputedStyle(document.documentElement);
         return style.getPropertyValue(varName).trim();
@@ -459,7 +585,6 @@
         };
       }
 
-      // Math parser
       function parseEquation(expr) {
         const sanitized = expr
           .replace(/\s+/g, '')
@@ -485,7 +610,6 @@
         `);
       }
 
-      // Euler method solver
       function solveODE(f, y0, t0, tEnd, steps, direction) {
         const solution = [];
         const h = direction * Math.abs(tEnd - t0) / steps;
@@ -496,14 +620,11 @@
 
         for (let i = 0; i < steps; i++) {
           const dydt = f(y, t);
-          
-          // Adaptive step if derivative is large
           const step = Math.abs(dydt) > 10 ? h * 0.1 : h;
           
           y = y + step * dydt;
           t = t + step;
 
-          // Clamp to reasonable values
           if (Math.abs(y) > 1e6) break;
           
           solution.push({ t, y });
@@ -512,28 +633,22 @@
         return solution;
       }
 
-      // Coordinate transformations
       function tToX(t) {
-        const width = canvas.width;
-        return (t - state.tMin) / (state.tMax - state.tMin) * width;
+        return (t - state.tMin) / (state.tMax - state.tMin) * canvas.width;
       }
 
       function yToX(y) {
-        const height = canvas.height;
-        return height - (y - state.yMin) / (state.yMax - state.yMin) * height;
+        return canvas.height - (y - state.yMin) / (state.yMax - state.yMin) * canvas.height;
       }
 
       function xToT(x) {
-        const width = canvas.width;
-        return state.tMin + (x / width) * (state.tMax - state.tMin);
+        return state.tMin + (x / canvas.width) * (state.tMax - state.tMin);
       }
 
       function xToY(y) {
-        const height = canvas.height;
-        return state.yMax - (y / height) * (state.yMax - state.yMin);
+        return state.yMax - (y / canvas.height) * (state.yMax - state.yMin);
       }
 
-      // Drawing functions
       function clearCanvas() {
         const colors = getColors();
         ctx.fillStyle = colors.bg;
@@ -547,11 +662,9 @@
 
         const tRange = state.tMax - state.tMin;
         const yRange = state.yMax - state.yMin;
-
         const tStep = Math.pow(10, Math.floor(Math.log10(tRange / 5)));
         const yStep = Math.pow(10, Math.floor(Math.log10(yRange / 5)));
 
-        // Vertical lines
         ctx.beginPath();
         for (let t = Math.ceil(state.tMin / tStep) * tStep; t <= state.tMax; t += tStep) {
           const x = tToX(t);
@@ -560,7 +673,6 @@
         }
         ctx.stroke();
 
-        // Horizontal lines
         ctx.beginPath();
         for (let y = Math.ceil(state.yMin / yStep) * yStep; y <= state.yMax; y += yStep) {
           const yPos = yToX(y);
@@ -575,7 +687,6 @@
         ctx.strokeStyle = colors.axis;
         ctx.lineWidth = 1.5;
 
-        // T-axis
         if (state.yMin <= 0 && state.yMax >= 0) {
           const y0 = yToX(0);
           ctx.beginPath();
@@ -584,7 +695,6 @@
           ctx.stroke();
         }
 
-        // Y-axis
         if (state.tMin <= 0 && state.tMax >= 0) {
           const t0 = tToX(0);
           ctx.beginPath();
@@ -644,7 +754,6 @@
         for (let i = 0; i < solution.length; i++) {
           const pt = solution[i];
           
-          // Skip points outside view
           if (pt.t < state.tMin || pt.t > state.tMax || 
               pt.y < state.yMin || pt.y > state.yMax) {
             if (started) {
@@ -667,7 +776,6 @@
         }
         ctx.stroke();
 
-        // Draw initial point
         if (solution.length > 0) {
           const p0 = solution[0];
           if (p0.t >= state.tMin && p0.t <= state.tMax &&
@@ -688,7 +796,6 @@
         let f;
         try {
           f = parseEquation(state.equation);
-          // Test the function
           f(0, 0);
         } catch (e) {
           console.error('Invalid equation:', e);
@@ -697,9 +804,7 @@
 
         drawSlopeField(f);
 
-        // Solve forward
         const solutionForward = solveODE(f, state.y0, state.t0, state.tMax, state.steps, 1);
-        // Solve backward
         const solutionBackward = solveODE(f, state.y0, state.t0, state.tMin, state.steps, -1);
         
         const colors = getColors();
@@ -708,7 +813,7 @@
         drawSolution(solutionBackward, colors.solution);
       }
 
-      // Event handlers
+      // --- Event Handlers ---
       function updateFromInputs() {
         state.equation = inputs.equation.value || '-y';
         state.y0 = parseFloat(inputs.y0.value) || 0;
@@ -825,9 +930,6 @@
 
         const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
 
-        const tRange = (state.tMax - state.tMin) * zoomFactor;
-        const yRange = (state.yMax - state.yMin) * zoomFactor;
-
         state.tMin = tCenter - (tCenter - state.tMin) * zoomFactor;
         state.tMax = tCenter + (state.tMax - tCenter) * zoomFactor;
         state.yMin = yCenter - (yCenter - state.yMin) * zoomFactor;
@@ -839,37 +941,26 @@
 
       function handleResize() {
         const rect = canvas.parentElement.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        const width = rect.width - 2; // border
+        const width = rect.width - 2; 
         const height = Math.min(500, window.innerHeight * 0.6);
         
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-        
-        ctx.scale(dpr, dpr);
         canvas.width = width;
         canvas.height = height;
         
         render();
       }
 
-      // Initialize
       function init() {
-        // Event listeners
         buttons.solve.addEventListener('click', handleSolve);
         buttons.reset.addEventListener('click', handleReset);
         inputs.presets.addEventListener('change', handlePresetChange);
         inputs.steps.addEventListener('input', handleStepsChange);
 
-        // Input changes trigger solve
         [inputs.equation, inputs.y0, inputs.t0, inputs.tMin, inputs.tMax, 
          inputs.yMin, inputs.yMax].forEach(input => {
           input.addEventListener('change', handleSolve);
         });
 
-        // Canvas interactions
         canvas.addEventListener('click', function(e) {
           if (!state.isDragging) {
             handleCanvasClick(e);
@@ -882,7 +973,6 @@
         canvas.addEventListener('mouseleave', handleMouseUp);
         canvas.addEventListener('wheel', handleWheel, { passive: false });
 
-        // Touch support
         canvas.addEventListener('touchstart', function(e) {
           e.preventDefault();
           const touch = e.touches[0];
@@ -897,14 +987,11 @@
 
         canvas.addEventListener('touchend', handleMouseUp);
 
-        // Resize
         window.addEventListener('resize', handleResize);
 
-        // Initial render
         handleResize();
       }
 
-      // Run
       init();
     })();
   </script>

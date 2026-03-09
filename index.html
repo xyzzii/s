@@ -3,368 +3,131 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data:;">
   <title>Differential Equation Solver</title>
   <style>
-    /* 1. Define Light Mode (Default) */
     :root {
-      --bg: #ffffff;
-      --fg: #000000;
-      --muted: #666666;
-      --border: #000000;
-      --accent: #000000;
-      --grid: #cccccc;
-      --axis: #000000;
-      --solution: #000000;
-      --field: #999999;
+      --bg: #ffffff; --fg: #000000; --muted: #666666; --border: #000000;
+      --accent: #000000; --grid: #cccccc; --axis: #000000;
+      --solution: #000000; --field: #999999;
     }
 
     /* 2. Define System Dark Mode */
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --bg: #0a0a0a;
-        --fg: #e5e5e5;
-        --muted: #888888;
-        --border: #333333;
-        --accent: #ffffff;
-        --grid: #222222;
-        --axis: #444444;
-        --solution: #ffffff;
-        --field: #444444;
+        --bg: #0a0a0a; --fg: #e5e5e5; --muted: #888888; --border: #333333;
+        --accent: #ffffff; --grid: #222222; --axis: #444444;
+        --solution: #ffffff; --field: #444444;
       }
     }
 
     /* 3. Define Manual Dark Mode Override */
     :root[data-theme="dark"] {
-      --bg: #0a0a0a;
-      --fg: #e5e5e5;
-      --muted: #888888;
-      --border: #333333;
-      --accent: #ffffff;
-      --grid: #222222;
-      --axis: #444444;
-      --solution: #ffffff;
-      --field: #444444;
+        --bg: #0a0a0a; --fg: #e5e5e5; --muted: #888888; --border: #333333;
+        --accent: #ffffff; --grid: #222222; --axis: #444444;
+        --solution: #ffffff; --field: #444444;
     }
 
     /* 4. Define Manual Light Mode Override */
     :root[data-theme="light"] {
-      --bg: #ffffff;
-      --fg: #000000;
-      --muted: #666666;
-      --border: #000000;
-      --accent: #000000;
-      --grid: #cccccc;
-      --axis: #000000;
-      --solution: #000000;
-      --field: #999999;
+        --bg: #ffffff; --fg: #000000; --muted: #666666; --border: #000000;
+        --accent: #000000; --grid: #cccccc; --axis: #000000;
+        --solution: #000000; --field: #999999;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", 
-                   Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      font-size: 16px;
-      line-height: 1.5;
-      background: var(--bg);
-      color: var(--fg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 16px; line-height: 1.5; background: var(--bg); color: var(--fg);
     }
 
-    body {
-      min-height: 100vh;
-      padding: 2rem;
-    }
+    body { min-height: 100vh; padding: 2rem; }
 
     /* Noscript Styles */
+    #js-status, noscript {
+      display: block; margin-bottom: 1.5rem; padding: 1rem;
+      border: 2px solid; text-align: center; font-weight: bold;
+    }
     noscript {
-      display: block;
-      margin-bottom: 2rem;
-      padding: 1rem;
-      border: 2px dashed var(--border);
-      background: var(--bg);
-      color: var(--fg);
+      border-color: var(--border); background: var(--bg); color: var(--fg);
+    }
+    #js-status {
+      background: #ffeeee; border-color: #ff0000; color: #990000;
+    }
+    #js-status.loaded {
+      background: #eeffee; border-color: #00aa00; color: #006600;
+      display: none;
     }
 
-    noscript h2 {
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    noscript p {
-      font-size: 0.875rem;
-      color: var(--muted);
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-    }
+    .container { max-width: 900px; margin: 0 auto; }
 
     header {
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 1rem;
+      margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;
     }
-
-    .header-content h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.25rem;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 0.875rem;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-
+    .header-content h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); font-size: 0.875rem; }
+    .header-actions { display: flex; gap: 0.5rem; }
     .theme-toggle {
-      font-size: 0.75rem;
-      padding: 0.5rem 0.75rem;
-      background: transparent;
-      color: var(--fg);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-size: 0.75rem; padding: 0.5rem 0.75rem; background: transparent;
+      color: var(--fg); border: 1px solid var(--border); cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.05em;
       transition: background 0.2s ease, color 0.2s ease;
       min-width: 80px; /* Prevent layout shift */
       text-align: center;
     }
 
-    .theme-toggle:hover {
-      background: var(--fg);
-      color: var(--bg);
-    }
+    .theme-toggle:hover { background: var(--fg); color: var(--bg); }
 
-    .theme-toggle:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
+    .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1.5rem;
-    }
+    .main-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media (min-width: 700px) { .main-grid { grid-template-columns: 280px 1fr; } }
 
-    @media (min-width: 700px) {
-      .main-grid {
-        grid-template-columns: 280px 1fr;
-      }
-    }
+    .controls { display: flex; flex-direction: column; gap: 1.25rem; }
+    .control-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 
-    .controls {
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-    }
-
-    .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-    }
-
-    input[type="text"],
-    input[type="number"] {
-      font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", 
-                   Consolas, "Courier New", monospace;
-      font-size: 0.875rem;
-      padding: 0.5rem 0.75rem;
-      background: var(--bg);
-      color: var(--fg);
-      border: 1px solid var(--border);
-      width: 100%;
+    input[type="text"], input[type="number"] {
+      font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace; font-size: 0.875rem;
+      padding: 0.5rem 0.75rem; background: var(--bg); color: var(--fg);
+      border: 1px solid var(--border); width: 100%;
       transition: border-color 0.15s ease;
     }
+    input:focus { outline: none; border-color: var(--accent); }
 
-    input[type="text"]:focus,
-    input[type="number"]:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
+    input[type="range"] { width: 100%; height: 2px; background: var(--border); appearance: none; cursor: pointer; }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; background: var(--accent); }
 
-    input[type="range"] {
-      width: 100%;
-      height: 2px;
-      background: var(--border);
-      appearance: none;
-      cursor: pointer;
+    input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; background: var(--accent); border: none; border-radius: 0; cursor: pointer;
     }
+    
+    select, .btn {
+      font-size: 0.875rem; padding: 0.5rem 0.75rem; background: var(--bg);
+      color: var(--fg); border: 1px solid var(--border); cursor: pointer;
+    }
+    select:focus { outline: none; border-color: var(--accent); }
+    .btn { font-size: 0.875rem; font-weight: 500; padding: 0.625rem 1rem; background: var(--fg); color: var(--bg); border: none; cursor: pointer; transition: opacity 0.15s ease; }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--fg); color: var(--bg); opacity: 1; }
 
-    input[type="range"]::-webkit-slider-thumb {
-      appearance: none;
-      width: 14px;
-      height: 14px;
-      background: var(--accent);
-      border-radius: 0;
-      cursor: pointer;
-    }
+    .canvas-wrapper { position: relative; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
+    canvas { display: block; width: 100%; cursor: crosshair; }
+    .canvas-info { position: absolute; bottom: 0.5rem; right: 0.5rem; font-size: 0.625rem; color: var(--muted); pointer-events: none; font-family: "SF Mono", Monaco, "Cascadia Code", monospace; }
 
-    input[type="range"]::-moz-range-thumb {
-      width: 14px;
-      height: 14px;
-      background: var(--accent);
-      border: none;
-      border-radius: 0;
-      cursor: pointer;
-    }
-
-    select {
-      font-size: 0.875rem;
-      padding: 0.5rem 0.75rem;
-      background: var(--bg);
-      color: var(--fg);
-      border: 1px solid var(--border);
-      cursor: pointer;
-    }
-
-    select:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .btn {
-      font-size: 0.875rem;
-      font-weight: 500;
-      padding: 0.625rem 1rem;
-      background: var(--fg);
-      color: var(--bg);
-      border: none;
-      cursor: pointer;
-      transition: opacity 0.15s ease;
-    }
-
-    .btn:hover {
-      opacity: 0.85;
-    }
-
-    .btn:active {
-      opacity: 0.7;
-    }
-
-    .btn:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-
-    .btn-outline {
-      background: transparent;
-      color: var(--fg);
-      border: 1px solid var(--border);
-    }
-
-    .btn-outline:hover {
-      background: var(--fg);
-      color: var(--bg);
-      opacity: 1;
-    }
-
-    .canvas-wrapper {
-      position: relative;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      cursor: crosshair;
-    }
-
-    .canvas-info {
-      position: absolute;
-      bottom: 0.5rem;
-      right: 0.5rem;
-      font-size: 0.625rem;
-      color: var(--muted);
-      pointer-events: none;
-      font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
-    }
-
-    .legend {
-      margin-top: 1rem;
-      padding: 1rem;
-      border: 1px solid var(--border);
-      font-size: 0.75rem;
-    }
-
-    .legend-title {
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.25rem;
-      color: var(--muted);
-    }
-
-    .legend-line {
-      width: 1.5rem;
-      height: 2px;
-      background: var(--solution);
-    }
-
-    .legend-arrow {
-      width: 1.5rem;
-      height: 2px;
-      background: var(--field);
-      position: relative;
-    }
-
-    .legend-arrow::after {
-      content: "";
-      position: absolute;
-      right: 0;
-      top: -2px;
-      border: 3px solid transparent;
-      border-left-color: var(--field);
-    }
-
-    .instructions {
-      margin-top: 1.5rem;
-      padding: 1rem;
-      border: 1px dashed var(--border);
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    .instructions ul {
-      margin-left: 1rem;
-      margin-top: 0.5rem;
-    }
-
-    .instructions li {
-      margin-bottom: 0.25rem;
-    }
+    .legend { margin-top: 1rem; padding: 1rem; border: 1px solid var(--border); font-size: 0.75rem; }
+    .legend-title { font-weight: 600; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; color: var(--muted); }
+    .legend-line { width: 1.5rem; height: 2px; background: var(--solution); }
+    .legend-arrow { width: 1.5rem; height: 2px; background: var(--field); position: relative; }
+    .legend-arrow::after { content: ""; position: absolute; right: 0; top: -2px; border: 3px solid transparent; border-left-color: var(--field); }
+    .instructions { margin-top: 1.5rem; padding: 1rem; border: 1px dashed var(--border); font-size: 0.75rem; color: var(--muted); }
+    .instructions ul { margin-left: 1rem; margin-top: 0.5rem; }
+    .instructions li { margin-bottom: 0.25rem; }
 
     @media (prefers-reduced-motion: reduce) {
       * {
@@ -376,19 +139,22 @@
 </head>
 <body>
   <div class="container">
-    
-    <noscript>
-      <h2>JavaScript Required</h2>
-      <p>Please enable JavaScript to use the differential equation solver. This application relies on JS for mathematical calculations and canvas rendering.</p>
-    </noscript>
 
+  <noscript>
+    <h2>JavaScript Required</h2>
+    <p>Please enable JavaScript. The solver relies on it for calculations.</p>
+  </noscript>
+
+  <div id="js-status">JavaScript Status: Initializing...</div>
+
+  <div class="container">
     <header>
       <div class="header-content">
         <h1>Differential Equation Solver</h1>
         <p class="subtitle">First-order ODE: dy/dt = f(y, t)</p>
       </div>
       <div class="header-actions">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">Theme</button>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">Theme</button>
       </div>
     </header>
 
@@ -396,9 +162,8 @@
       <div class="controls">
         <div class="control-group">
           <label for="equation">Equation dy/dt =</label>
-          <input type="text" id="equation" value="-y" aria-describedby="eq-help">
+          <input type="text" id="equation" value="-y">
         </div>
-
         <div class="control-group">
           <label for="presets">Presets</label>
           <select id="presets">
@@ -411,17 +176,14 @@
             <option value="y*y-t*t">Nonlinear: y² - t²</option>
           </select>
         </div>
-
         <div class="control-group">
           <label for="y0">Initial y(t₀)</label>
           <input type="number" id="y0" value="1" step="0.1">
         </div>
-
         <div class="control-group">
           <label for="t0">Initial t₀</label>
           <input type="number" id="t0" value="0" step="0.1">
         </div>
-
         <div class="control-group">
           <label>Time range</label>
           <div style="display: flex; gap: 0.5rem;">
@@ -429,7 +191,6 @@
             <input type="number" id="tMax" value="5" step="1" style="width: 50%;">
           </div>
         </div>
-
         <div class="control-group">
           <label>Y range</label>
           <div style="display: flex; gap: 0.5rem;">
@@ -437,15 +198,12 @@
             <input type="number" id="yMax" value="5" step="1" style="width: 50%;">
           </div>
         </div>
-
         <div class="control-group">
-          <label for="steps">Integration steps: <span id="stepsVal">200</span></label>
+          <label for="steps">Steps: <span id="stepsVal">200</span></label>
           <input type="range" id="steps" min="50" max="500" value="200">
         </div>
-
         <button class="btn" id="solve">Solve</button>
         <button class="btn btn-outline" id="reset">Reset View</button>
-
         <div class="legend">
           <div class="legend-title">Legend</div>
           <div class="legend-item">
@@ -464,7 +222,6 @@
           <canvas id="graph" width="600" height="500" role="img" aria-label="Differential equation solution graph"></canvas>
           <div class="canvas-info" id="coords">t: 0.00, y: 0.00</div>
         </div>
-
         <div class="instructions">
           <strong>Instructions:</strong>
           <ul>
@@ -480,519 +237,379 @@
 
   <script>
     (function() {
-      'use strict';
-
-      // --- Theme Manager ---
-      const themes = ['auto', 'light', 'dark'];
-      let currentThemeIndex = 0;
-      const themeToggle = document.getElementById('themeToggle');
-      const htmlRoot = document.documentElement;
-
-      function applyTheme(theme) {
-        // Remove existing theme attributes
-        htmlRoot.removeAttribute('data-theme');
-        
-        if (theme === 'light') {
-          htmlRoot.setAttribute('data-theme', 'light');
-        } else if (theme === 'dark') {
-          htmlRoot.setAttribute('data-theme', 'dark');
+      function handleError(e) {
+        var status = document.getElementById('js-status');
+        if(status) {
+          status.innerHTML = "JavaScript Error: " + e.message + " (Check Console F12)";
+          status.style.display = 'block';
         }
-        // If 'auto', we do nothing, letting the @media query handle it
-        
-        // Update button text
-        themeToggle.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
-        
-        // Re-render canvas to update colors immediately
-        if (typeof render === 'function') render();
+        console.error(e);
       }
 
-      function cycleTheme() {
-        currentThemeIndex = (currentThemeIndex + 1) % themes.length;
-        const newTheme = themes[currentThemeIndex];
-        localStorage.setItem('theme', newTheme);
-        applyTheme(newTheme);
-      }
+      try {
+        'use strict';
 
-      function initTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme && themes.includes(savedTheme)) {
-          currentThemeIndex = themes.indexOf(savedTheme);
-        } else {
-          // Default to system
-          currentThemeIndex = 0;
+        // --- 1. INITIALIZATION ---
+        var canvas = document.getElementById('graph');
+        var ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+           throw new Error("Could not get canvas context.");
         }
-        applyTheme(themes[currentThemeIndex]);
-      }
 
-      themeToggle.addEventListener('click', cycleTheme);
-      initTheme();
+        // --- 2. CONFIG & STATE ---
+        var themes = ['auto', 'light', 'dark'];
+        var themeIndex = 0;
+        var themeBtn = document.getElementById('themeToggle');
+        var htmlRoot = document.documentElement;
 
-      // --- Solver Logic ---
-      const CONFIG = {
-        gridDensity: 20,
-        arrowScale: 0.7,
-        lineWidth: 2,
-        pointRadius: 4
-      };
-
-      const state = {
-        tMin: -5, tMax: 5,
-        yMin: -5, yMax: 5,
-        equation: '-y',
-        y0: 1, t0: 0,
-        steps: 200,
-        isDragging: false,
-        dragStart: { x: 0, y: 0 },
-        viewStart: { tMin: 0, tMax: 0, yMin: 0, yMax: 0 }
-      };
-
-      const canvas = document.getElementById('graph');
-      const ctx = canvas.getContext('2d');
-      const coordsDisplay = document.getElementById('coords');
-      const stepsValDisplay = document.getElementById('stepsVal');
-
-      const inputs = {
-        equation: document.getElementById('equation'),
-        presets: document.getElementById('presets'),
-        y0: document.getElementById('y0'),
-        t0: document.getElementById('t0'),
-        tMin: document.getElementById('tMin'),
-        tMax: document.getElementById('tMax'),
-        yMin: document.getElementById('yMin'),
-        yMax: document.getElementById('yMax'),
-        steps: document.getElementById('steps')
-      };
-
-      const buttons = {
-        solve: document.getElementById('solve'),
-        reset: document.getElementById('reset')
-      };
-
-      function getComputedColor(varName) {
-        const style = getComputedStyle(document.documentElement);
-        return style.getPropertyValue(varName).trim();
-      }
-
-      function getColors() {
-        return {
-          bg: getComputedColor('--bg'),
-          fg: getComputedColor('--fg'),
-          grid: getComputedColor('--grid'),
-          axis: getComputedColor('--axis'),
-          solution: getComputedColor('--solution'),
-          field: getComputedColor('--field'),
-          muted: getComputedColor('--muted')
+        var defaultState = {
+          tMin: -5, tMax: 5, yMin: -5, yMax: 5,
+          eq: '-y', y0: 1, t0: 0, steps: 200
         };
-      }
 
-      function parseEquation(expr) {
-        const sanitized = expr
-          .replace(/\s+/g, '')
-          .replace(/\^/g, '**')
-          .replace(/sin/g, 'Math.sin')
-          .replace(/cos/g, 'Math.cos')
-          .replace(/tan/g, 'Math.tan')
-          .replace(/exp/g, 'Math.exp')
-          .replace(/log/g, 'Math.log')
-          .replace(/sqrt/g, 'Math.sqrt')
-          .replace(/abs/g, 'Math.abs')
-          .replace(/pi/gi, 'Math.PI')
-          .replace(/e(?![x])/g, 'Math.E');
+        var state = Object.assign({}, defaultState);
 
-        return new Function('y', 't', `
-          try {
-            const result = ${sanitized};
-            if (!isFinite(result)) return 0;
-            return result;
-          } catch(e) {
-            return 0;
-          }
-        `);
-      }
+        // DOM Inputs
+        var inputs = {
+          eq: document.getElementById('equation'),
+          y0: document.getElementById('y0'), t0: document.getElementById('t0'),
+          tMin: document.getElementById('tMin'), tMax: document.getElementById('tMax'),
+          yMin: document.getElementById('yMin'), yMax: document.getElementById('yMax'),
+          steps: document.getElementById('steps'), stepsVal: document.getElementById('stepsVal'),
+          presets: document.getElementById('presets')
+        };
 
-      function solveODE(f, y0, t0, tEnd, steps, direction) {
-        const solution = [];
-        const h = direction * Math.abs(tEnd - t0) / steps;
-        let y = y0;
-        let t = t0;
-
-        solution.push({ t, y });
-
-        for (let i = 0; i < steps; i++) {
-          const dydt = f(y, t);
-          const step = Math.abs(dydt) > 10 ? h * 0.1 : h;
-          
-          y = y + step * dydt;
-          t = t + step;
-
-          if (Math.abs(y) > 1e6) break;
-          
-          solution.push({ t, y });
+        // --- 3. PERSISTENCE HELPERS ---
+        function safeGetStorage(key) {
+          try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+        function safeSetStorage(key, val) {
+          try { localStorage.setItem(key, val); } catch (e) {}
         }
 
-        return solution;
-      }
-
-      function tToX(t) {
-        return (t - state.tMin) / (state.tMax - state.tMin) * canvas.width;
-      }
-
-      function yToX(y) {
-        return canvas.height - (y - state.yMin) / (state.yMax - state.yMin) * canvas.height;
-      }
-
-      function xToT(x) {
-        return state.tMin + (x / canvas.width) * (state.tMax - state.tMin);
-      }
-
-      function xToY(y) {
-        return state.yMax - (y / canvas.height) * (state.yMax - state.yMin);
-      }
-
-      function clearCanvas() {
-        const colors = getColors();
-        ctx.fillStyle = colors.bg;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      function drawGrid() {
-        const colors = getColors();
-        ctx.strokeStyle = colors.grid;
-        ctx.lineWidth = 1;
-
-        const tRange = state.tMax - state.tMin;
-        const yRange = state.yMax - state.yMin;
-        const tStep = Math.pow(10, Math.floor(Math.log10(tRange / 5)));
-        const yStep = Math.pow(10, Math.floor(Math.log10(yRange / 5)));
-
-        ctx.beginPath();
-        for (let t = Math.ceil(state.tMin / tStep) * tStep; t <= state.tMax; t += tStep) {
-          const x = tToX(t);
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, canvas.height);
-        }
-        ctx.stroke();
-
-        ctx.beginPath();
-        for (let y = Math.ceil(state.yMin / yStep) * yStep; y <= state.yMax; y += yStep) {
-          const yPos = yToX(y);
-          ctx.moveTo(0, yPos);
-          ctx.lineTo(canvas.width, yPos);
-        }
-        ctx.stroke();
-      }
-
-      function drawAxes() {
-        const colors = getColors();
-        ctx.strokeStyle = colors.axis;
-        ctx.lineWidth = 1.5;
-
-        if (state.yMin <= 0 && state.yMax >= 0) {
-          const y0 = yToX(0);
-          ctx.beginPath();
-          ctx.moveTo(0, y0);
-          ctx.lineTo(canvas.width, y0);
-          ctx.stroke();
+        // Helper to format numbers for display (fixes the 15 decimal issue)
+        function fmt(num) {
+          return parseFloat(num).toFixed(4);
         }
 
-        if (state.tMin <= 0 && state.tMax >= 0) {
-          const t0 = tToX(0);
-          ctx.beginPath();
-          ctx.moveTo(t0, 0);
-          ctx.lineTo(t0, canvas.height);
-          ctx.stroke();
+        function saveState() {
+          var stateToSave = {
+            eq: state.eq,
+            y0: state.y0,
+            t0: state.t0,
+            tMin: state.tMin,
+            tMax: state.tMax,
+            yMin: state.yMin,
+            yMax: state.yMax,
+            steps: state.steps
+          };
+          safeSetStorage('ode_solver_state_v1', JSON.stringify(stateToSave));
         }
-      }
 
-      function drawSlopeField(f) {
-        const colors = getColors();
-        ctx.strokeStyle = colors.field;
-        ctx.lineWidth = 1;
+        function loadState() {
+          var saved = safeGetStorage('ode_solver_state_v1');
+          if (saved) {
+            try {
+              var loaded = JSON.parse(saved);
+              
+              state.eq = loaded.eq || defaultState.eq;
+              state.y0 = !isNaN(loaded.y0) ? loaded.y0 : defaultState.y0;
+              state.t0 = !isNaN(loaded.t0) ? loaded.t0 : defaultState.t0;
+              state.tMin = !isNaN(loaded.tMin) ? loaded.tMin : defaultState.tMin;
+              state.tMax = !isNaN(loaded.tMax) ? loaded.tMax : defaultState.tMax;
+              state.yMin = !isNaN(loaded.yMin) ? loaded.yMin : defaultState.yMin;
+              state.yMax = !isNaN(loaded.yMax) ? loaded.yMax : defaultState.yMax;
+              state.steps = loaded.steps || defaultState.steps;
+              
+              // Apply to Inputs with formatting
+              inputs.eq.value = state.eq;
+              inputs.y0.value = fmt(state.y0);
+              inputs.t0.value = fmt(state.t0);
+              inputs.tMin.value = fmt(state.tMin);
+              inputs.tMax.value = fmt(state.tMax);
+              inputs.yMin.value = fmt(state.yMin);
+              inputs.yMax.value = fmt(state.yMax);
+              
+              // Fix: Ensure slider and label are updated
+              inputs.steps.value = state.steps;
+              inputs.stepsVal.textContent = state.steps;
 
-        const cols = 20;
-        const rows = Math.floor(cols * canvas.height / canvas.width);
-        const tStep = (state.tMax - state.tMin) / cols;
-        const yStep = (state.yMax - state.yMin) / rows;
-
-        const arrowLen = Math.min(tStep, yStep) * 0.4 * CONFIG.arrowScale;
-
-        for (let i = 0; i <= cols; i++) {
-          for (let j = 0; j <= rows; j++) {
-            const t = state.tMin + i * tStep;
-            const y = state.yMin + j * yStep;
-            
-            const dydt = f(y, t);
-            const mag = Math.sqrt(1 + dydt * dydt);
-            
-            const dx = arrowLen / mag;
-            const dy = arrowLen * dydt / mag;
-
-            const x = tToX(t);
-            const yPos = yToX(y);
-
-            ctx.beginPath();
-            ctx.moveTo(x - dx * canvas.width / (state.tMax - state.tMin), 
-                       yPos + dy * canvas.height / (state.yMax - state.yMin));
-            ctx.lineTo(x + dx * canvas.width / (state.tMax - state.tMin), 
-                       yPos - dy * canvas.height / (state.yMax - state.yMin));
-            ctx.stroke();
-          }
-        }
-      }
-
-      function drawSolution(solution, color) {
-        if (solution.length < 2) return;
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = CONFIG.lineWidth;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        ctx.beginPath();
-        let started = false;
-
-        for (let i = 0; i < solution.length; i++) {
-          const pt = solution[i];
-          
-          if (pt.t < state.tMin || pt.t > state.tMax || 
-              pt.y < state.yMin || pt.y > state.yMax) {
-            if (started) {
-              ctx.stroke();
-              ctx.beginPath();
-              started = false;
+            } catch(e) {
+              console.warn("Failed to load saved state", e);
             }
-            continue;
-          }
-
-          const x = tToX(pt.t);
-          const y = yToX(pt.y);
-
-          if (!started) {
-            ctx.moveTo(x, y);
-            started = true;
-          } else {
-            ctx.lineTo(x, y);
           }
         }
-        ctx.stroke();
 
-        if (solution.length > 0) {
-          const p0 = solution[0];
-          if (p0.t >= state.tMin && p0.t <= state.tMax &&
-              p0.y >= state.yMin && p0.y <= state.yMax) {
-            ctx.fillStyle = color;
+        // --- 4. CORE LOGIC ---
+        
+        function getColors() {
+          var s = getComputedStyle(document.documentElement);
+          return {
+            bg: s.getPropertyValue('--bg').trim(),
+            fg: s.getPropertyValue('--fg').trim(),
+            grid: s.getPropertyValue('--grid').trim(),
+            axis: s.getPropertyValue('--axis').trim(),
+            sol: s.getPropertyValue('--solution').trim(),
+            field: s.getPropertyValue('--field').trim()
+          };
+        }
+
+        function parseEq(expr) {
+          var code = expr.replace(/\s+/g, '')
+            .replace(/\^/g, '**')
+            .replace(/sin/g, 'Math.sin')
+            .replace(/cos/g, 'Math.cos')
+            .replace(/tan/g, 'Math.tan')
+            .replace(/exp/g, 'Math.exp')
+            .replace(/log/g, 'Math.log')
+            .replace(/sqrt/g, 'Math.sqrt')
+            .replace(/abs/g, 'Math.abs')
+            .replace(/pi/gi, 'Math.PI');
+          return new Function('y', 't', 'try { var r = ' + code + '; return isFinite(r) ? r : 0; } catch(e) { return 0; }');
+        }
+
+        function solve(f, y0, t0, tEnd, steps, dir) {
+          var res = [];
+          var h = dir * Math.abs(tEnd - t0) / steps;
+          var y = y0, t = t0;
+          res.push({t:t, y:y});
+          for(var i=0; i<steps; i++) {
+            var dy = f(y, t);
+            y += h * dy;
+            t += h;
+            if(Math.abs(y) > 1e6) break;
+            res.push({t:t, y:y});
+          }
+          return res;
+        }
+
+        // Coords
+        function t2x(t) { return (t - state.tMin) / (state.tMax - state.tMin) * canvas.width; }
+        function y2x(y) { return canvas.height - (y - state.yMin) / (state.yMax - state.yMin) * canvas.height; }
+        function x2t(x) { return state.tMin + (x / canvas.width) * (state.tMax - state.tMin); }
+        function x2y(y) { return state.yMax - (y / canvas.height) * (state.yMax - state.yMin); }
+
+        // --- 5. RENDERING ---
+        function render() {
+          if(!ctx) return;
+
+          var c = getColors();
+          ctx.fillStyle = c.bg;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // Grid
+          ctx.strokeStyle = c.grid; ctx.lineWidth = 1; ctx.beginPath();
+          var tStp = Math.pow(10, Math.floor(Math.log10((state.tMax-state.tMin)/5)));
+          var yStp = Math.pow(10, Math.floor(Math.log10((state.yMax-state.yMin)/5)));
+          for(var t = Math.ceil(state.tMin/tStp)*tStp; t<=state.tMax; t+=tStp) {
+            ctx.moveTo(t2x(t), 0); ctx.lineTo(t2x(t), canvas.height);
+          }
+          for(var y = Math.ceil(state.yMin/yStp)*yStp; y<=state.yMax; y+=yStp) {
+            ctx.moveTo(0, y2x(y)); ctx.lineTo(canvas.width, y2x(y));
+          } ctx.stroke();
+
+          // Axes
+          ctx.strokeStyle = c.axis; ctx.lineWidth = 1.5; ctx.beginPath();
+          if(state.yMin <= 0 && state.yMax >= 0) { var y0 = y2x(0); ctx.moveTo(0, y0); ctx.lineTo(canvas.width, y0); }
+          if(state.tMin <= 0 && state.tMax >= 0) { var t0 = t2x(0); ctx.moveTo(t0, 0); ctx.lineTo(t0, canvas.height); }
+          ctx.stroke();
+
+          // Slope Field
+          var f;
+          try { f = parseEq(state.eq); f(0,0); } catch(e) { return; }
+          ctx.strokeStyle = c.field; ctx.lineWidth = 1;
+          var cols = 20, rows = Math.floor(cols * canvas.height / canvas.width);
+          var tStep = (state.tMax-state.tMin)/cols, yStep = (state.yMax-state.yMin)/rows;
+          var len = Math.min(tStep, yStep) * 0.3;
+          
+          for(var i=0; i<=cols; i++) {
+            for(var j=0; j<=rows; j++) {
+              var tt = state.tMin + i*tStep, yy = state.yMin + j*yStep;
+              var dydt = f(yy,tt);
+              var mag = Math.sqrt(1 + dydt*dydt);
+              var dx = len/mag, dy = len*dydt/mag;
+              ctx.beginPath();
+              ctx.moveTo(t2x(tt-dx), y2x(yy+dy));
+              ctx.lineTo(t2x(tt+dx), y2x(yy-dy));
+              ctx.stroke();
+            }
+          }
+
+          // Solution
+          var fwd = solve(f, state.y0, state.t0, state.tMax, state.steps, 1);
+          var bwd = solve(f, state.y0, state.t0, state.tMin, state.steps, -1);
+          ctx.strokeStyle = c.sol; ctx.lineWidth = 2; ctx.lineCap = 'round';
+          
+          function drawSol(sol) {
             ctx.beginPath();
-            ctx.arc(tToX(p0.t), yToX(p0.y), CONFIG.pointRadius, 0, Math.PI * 2);
-            ctx.fill();
+            var started = false;
+            for(var i=0; i<sol.length; i++) {
+              var p = sol[i];
+              if(p.t < state.tMin || p.t > state.tMax || p.y < state.yMin || p.y > state.yMax) {
+                if(started) { ctx.stroke(); ctx.beginPath(); started = false; }
+                continue;
+              }
+              if(!started) { ctx.moveTo(t2x(p.t), y2x(p.y)); started = true; }
+              else ctx.lineTo(t2x(p.t), y2x(p.y));
+            } ctx.stroke();
           }
-        }
-      }
-
-      function render() {
-        clearCanvas();
-        drawGrid();
-        drawAxes();
-
-        let f;
-        try {
-          f = parseEquation(state.equation);
-          f(0, 0);
-        } catch (e) {
-          console.error('Invalid equation:', e);
-          return;
+          drawSol(fwd);
+          drawSol(bwd);
+          
+          // Point
+          ctx.fillStyle = c.sol;
+          ctx.beginPath();
+          ctx.arc(t2x(state.t0), y2x(state.y0), 4, 0, Math.PI*2);
+          ctx.fill();
         }
 
-        drawSlopeField(f);
-
-        const solutionForward = solveODE(f, state.y0, state.t0, state.tMax, state.steps, 1);
-        const solutionBackward = solveODE(f, state.y0, state.t0, state.tMin, state.steps, -1);
-        
-        const colors = getColors();
-        
-        drawSolution(solutionForward, colors.solution);
-        drawSolution(solutionBackward, colors.solution);
-      }
-
-      // --- Event Handlers ---
-      function updateFromInputs() {
-        state.equation = inputs.equation.value || '-y';
-        state.y0 = parseFloat(inputs.y0.value) || 0;
-        state.t0 = parseFloat(inputs.t0.value) || 0;
-        state.tMin = parseFloat(inputs.tMin.value) || -5;
-        state.tMax = parseFloat(inputs.tMax.value) || 5;
-        state.yMin = parseFloat(inputs.yMin.value) || -5;
-        state.yMax = parseFloat(inputs.yMax.value) || 5;
-        state.steps = parseInt(inputs.steps.value) || 200;
-      }
-
-      function updateInputsFromState() {
-        inputs.tMin.value = state.tMin.toFixed(2);
-        inputs.tMax.value = state.tMax.toFixed(2);
-        inputs.yMin.value = state.yMin.toFixed(2);
-        inputs.yMax.value = state.yMax.toFixed(2);
-      }
-
-      function handleSolve() {
-        updateFromInputs();
-        render();
-      }
-
-      function handleReset() {
-        state.tMin = -5; state.tMax = 5;
-        state.yMin = -5; state.yMax = 5;
-        updateInputsFromState();
-        render();
-      }
-
-      function handlePresetChange(e) {
-        if (e.target.value) {
-          inputs.equation.value = e.target.value;
-          state.equation = e.target.value;
+        // --- 6. UI & THEME ---
+        function applyTheme(theme) {
+          htmlRoot.removeAttribute('data-theme');
+          if (theme === 'light') htmlRoot.setAttribute('data-theme', 'light');
+          else if (theme === 'dark') htmlRoot.setAttribute('data-theme', 'dark');
+          themeBtn.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
           render();
         }
-      }
 
-      function handleStepsChange(e) {
-        state.steps = parseInt(e.target.value);
-        stepsValDisplay.textContent = state.steps;
-      }
+        function cycleTheme() {
+          themeIndex = (themeIndex + 1) % themes.length;
+          var newTheme = themes[themeIndex];
+          safeSetStorage('ode_solver_theme', newTheme);
+          applyTheme(newTheme);
+        }
 
-      function handleCanvasClick(e) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        function updateState() {
+          state.eq = inputs.eq.value || '-y';
+          state.y0 = parseFloat(inputs.y0.value) || 0;
+          state.t0 = parseFloat(inputs.t0.value) || 0;
+          state.tMin = parseFloat(inputs.tMin.value) || -5;
+          state.tMax = parseFloat(inputs.tMax.value) || 5;
+          state.yMin = parseFloat(inputs.yMin.value) || -5;
+          state.yMax = parseFloat(inputs.yMax.value) || 5;
+        }
         
-        const t = xToT(x * (canvas.width / rect.width));
-        const yPos = xToY(y * (canvas.height / rect.height));
+        function updateInputs() {
+          inputs.tMin.value = fmt(state.tMin);
+          inputs.tMax.value = fmt(state.tMax);
+          inputs.yMin.value = fmt(state.yMin);
+          inputs.yMax.value = fmt(state.yMax);
+        }
 
-        state.y0 = yPos;
-        state.t0 = t;
-        inputs.y0.value = yPos.toFixed(2);
-        inputs.t0.value = t.toFixed(2);
-        
-        render();
-      }
+        // --- 7. EVENT BINDINGS ---
+        themeBtn.addEventListener('click', cycleTheme);
 
-      function handleMouseDown(e) {
-        state.isDragging = true;
-        state.dragStart = { x: e.clientX, y: e.clientY };
-        state.viewStart = {
-          tMin: state.tMin, tMax: state.tMax,
-          yMin: state.yMin, yMax: state.yMax
+        document.getElementById('solve').onclick = function() { 
+          updateState(); 
+          saveState(); 
+          render(); 
         };
-        canvas.style.cursor = 'grabbing';
-      }
-
-      function handleMouseMove(e) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
         
-        const t = xToT(x * (canvas.width / rect.width));
-        const yPos = xToY(y * (canvas.height / rect.height));
+        document.getElementById('reset').onclick = function() { 
+          state.tMin=-5; state.tMax=5; state.yMin=-5; state.yMax=5; 
+          updateInputs();
+          saveState(); 
+          render(); 
+        };
         
-        coordsDisplay.textContent = `t: ${t.toFixed(2)}, y: ${yPos.toFixed(2)}`;
-
-        if (state.isDragging) {
-          const dx = e.clientX - state.dragStart.x;
-          const dy = e.clientY - state.dragStart.y;
-
-          const tRange = state.viewStart.tMax - state.viewStart.tMin;
-          const yRange = state.viewStart.yMax - state.viewStart.yMin;
-
-          const dt = -(dx / rect.width) * tRange;
-          const dyShift = (dy / rect.height) * yRange;
-
-          state.tMin = state.viewStart.tMin + dt;
-          state.tMax = state.viewStart.tMax + dt;
-          state.yMin = state.viewStart.yMin + dyShift;
-          state.yMax = state.viewStart.yMax + dyShift;
-
-          updateInputsFromState();
-          render();
-        }
-      }
-
-      function handleMouseUp() {
-        state.isDragging = false;
-        canvas.style.cursor = 'crosshair';
-      }
-
-      function handleWheel(e) {
-        e.preventDefault();
-
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        const tCenter = xToT(mouseX * (canvas.width / rect.width));
-        const yCenter = xToY(mouseY * (canvas.height / rect.height));
-
-        const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
-
-        state.tMin = tCenter - (tCenter - state.tMin) * zoomFactor;
-        state.tMax = tCenter + (state.tMax - tCenter) * zoomFactor;
-        state.yMin = yCenter - (yCenter - state.yMin) * zoomFactor;
-        state.yMax = yCenter + (state.yMax - yCenter) * zoomFactor;
-
-        updateInputsFromState();
-        render();
-      }
-
-      function handleResize() {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        const width = rect.width - 2; 
-        const height = Math.min(500, window.innerHeight * 0.6);
+        inputs.presets.onchange = function(e) { 
+          if(e.target.value) { 
+            inputs.eq.value = e.target.value; 
+            state.eq=e.target.value;
+            saveState(); 
+            render(); 
+          } 
+        };
         
-        canvas.width = width;
-        canvas.height = height;
+        inputs.steps.oninput = function(e) { 
+          state.steps = parseInt(e.target.value); 
+          inputs.stepsVal.textContent = state.steps; 
+          // Optional: saveState() here if you want live saving while dragging
+        };
         
-        render();
-      }
+        // Save steps when mouse is released
+        inputs.steps.onchange = function(e) {
+          saveState();
+        };
 
-      function init() {
-        buttons.solve.addEventListener('click', handleSolve);
-        buttons.reset.addEventListener('click', handleReset);
-        inputs.presets.addEventListener('change', handlePresetChange);
-        inputs.steps.addEventListener('input', handleStepsChange);
-
-        [inputs.equation, inputs.y0, inputs.t0, inputs.tMin, inputs.tMax, 
-         inputs.yMin, inputs.yMax].forEach(input => {
-          input.addEventListener('change', handleSolve);
-        });
-
-        canvas.addEventListener('click', function(e) {
-          if (!state.isDragging) {
-            handleCanvasClick(e);
+        // Canvas Interactions
+        canvas.onmousedown = function(e) { 
+          state.dragging = true; 
+          state.dragStart = {x:e.clientX, y:e.clientY}; 
+          state.viewStart = {tMin:state.tMin, tMax:state.tMax, yMin:state.yMin, yMax:state.yMax}; 
+          canvas.style.cursor='grabbing'; 
+        };
+        window.onmouseup = function() { state.dragging = false; canvas.style.cursor='crosshair'; };
+        
+        canvas.onmousemove = function(e) {
+          var rect = canvas.getBoundingClientRect();
+          var x = e.clientX - rect.left, y = e.clientY - rect.top;
+          document.getElementById('coords').textContent = 't: ' + x2t(x).toFixed(2) + ', y: ' + x2y(y).toFixed(2);
+          
+          if(state.dragging) {
+            var dx = e.clientX - state.dragStart.x;
+            var dy = e.clientY - state.dragStart.y;
+            var dt = -(dx / rect.width) * (state.viewStart.tMax - state.viewStart.tMin);
+            var dyS = (dy / rect.height) * (state.viewStart.yMax - state.viewStart.yMin);
+            state.tMin = state.viewStart.tMin + dt; state.tMax = state.viewStart.tMax + dt;
+            state.yMin = state.viewStart.yMin + dyS; state.yMax = state.viewStart.yMax + dyS;
+            updateInputs(); render();
           }
-        });
+        };
+        
+        canvas.onclick = function(e) {
+          if(state.dragging) return;
+          var rect = canvas.getBoundingClientRect();
+          state.t0 = x2t(e.clientX - rect.left);
+          state.y0 = x2y(e.clientY - rect.top);
+          
+          // Use formatted values
+          inputs.t0.value = fmt(state.t0);
+          inputs.y0.value = fmt(state.y0);
+          
+          saveState(); 
+          render();
+        };
 
-        canvas.addEventListener('mousedown', handleMouseDown);
-        canvas.addEventListener('mousemove', handleMouseMove);
-        canvas.addEventListener('mouseup', handleMouseUp);
-        canvas.addEventListener('mouseleave', handleMouseUp);
-        canvas.addEventListener('wheel', handleWheel, { passive: false });
-
-        canvas.addEventListener('touchstart', function(e) {
+        canvas.onwheel = function(e) {
           e.preventDefault();
-          const touch = e.touches[0];
-          handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
-        }, { passive: false });
+          var rect = canvas.getBoundingClientRect();
+          var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+          var tc = x2t(mx), yc = x2y(my);
+          var z = e.deltaY > 0 ? 1.1 : 0.9;
+          state.tMin = tc - (tc - state.tMin) * z; state.tMax = tc + (state.tMax - tc) * z;
+          state.yMin = yc - (yc - state.yMin) * z; state.yMax = yc + (state.yMax - yc) * z;
+          updateInputs(); render();
+        };
 
-        canvas.addEventListener('touchmove', function(e) {
-          e.preventDefault();
-          const touch = e.touches[0];
-          handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
-        }, { passive: false });
+        window.onresize = function() {
+          var w = canvas.parentElement.clientWidth - 2;
+          var h = Math.min(500, window.innerHeight * 0.6);
+          canvas.width = w; canvas.height = h;
+          render();
+        };
 
-        canvas.addEventListener('touchend', handleMouseUp);
+        // --- 8. KICKOFF ---
+        
+        // Load Theme
+        var savedTheme = safeGetStorage('ode_solver_theme');
+        if (savedTheme && themes.includes(savedTheme)) themeIndex = themes.indexOf(savedTheme);
+        applyTheme(themes[themeIndex]);
+        
+        // Load State
+        loadState();
+        
+        // Initial Render
+        window.onresize();
 
-        window.addEventListener('resize', handleResize);
+        // Hide Status
+        var status = document.getElementById('js-status');
+        status.className = 'loaded';
 
-        handleResize();
+      } catch(e) {
+        handleError(e);
       }
-
-      init();
     })();
   </script>
 </body>
